@@ -33,7 +33,29 @@ shasum -a 256 raw/<filename>
 - 해시가 다른 파일 → **변경됨**
 - 해시가 같은 파일 → **스킵**
 
-### 3. 소스 페이지 생성/갱신
+### 3. 처리 범위 결정
+
+신규/변경된 파일 수에 따라 처리 방식을 나눈다:
+
+- **3개 이하** → 한 세션에서 모두 처리
+- **4개 이상** → 파일 하나씩 순차 처리 (파일 하나 완료할 때마다 로그 기록)
+
+파일 하나씩 처리하는 이유: 논문 등 대용량 파일이 여러 개 들어오면 컨텍스트 한계에 도달할 수 있다. 파일마다 로그를 기록하면 중간에 세션이 끊겨도 다음 `/compile`에서 이어서 처리할 수 있다.
+
+처리 도중 컨텍스트가 부족해지면:
+1. 현재 파일까지 로그를 기록한다
+2. 사용자에게 "N개 파일 중 M개 완료. 나머지는 `/compile`을 다시 실행해주세요"라고 안내한다
+
+### 4. 소스 페이지 파일명 결정
+
+source 페이지 파일명은 raw 파일명을 기반으로 kebab-case 영어로 정규화한다:
+- 공백 → 하이픈 (`삼성전자 분석.md` → `samsung-analysis.md`)
+- 한글 → 영어 번역 또는 음역
+- 특수문자/괄호 → 제거
+- 대문자 → 소문자
+- 이미 같은 이름의 source 페이지가 있으면 뒤에 숫자를 붙인다 (`-2`, `-3`)
+
+### 5. 소스 페이지 생성/갱신
 
 신규/변경된 파일마다:
 
@@ -49,18 +71,18 @@ shasum -a 256 raw/<filename>
 3. Standard Page Template을 따른다:
    - Summary, Key Takeaways, Sources, Related Concepts, Related Pages, Open Questions
 
-### 4. 개념 연결 및 생성
+### 6. 개념 연결 및 생성
 
 1. `wiki/.system/concept-index.md`를 참조하여 기존 concept와 연결한다.
 2. aliases까지 확인하여 이름만 다른 같은 개념이 이미 있는지 반드시 체크한다.
 3. 반복 등장하는 개념인데 concept 페이지가 없으면 `wiki/concepts/`에 새로 만든다.
 4. 새 concept 페이지에도 Required Metadata와 Standard Page Template을 적용한다.
 
-### 5. Synthesis 검토
+### 7. Synthesis 검토
 
 기존 synthesis 페이지에 영향이 있는지 검토하고, 필요하면 갱신한다.
 
-### 6. 인덱스 갱신
+### 8. 인덱스 갱신
 
 `wiki/.system/` 인덱스 4개를 모두 갱신한다:
 - `master-index.md` — 전체 wiki 페이지 목록
@@ -68,7 +90,7 @@ shasum -a 256 raw/<filename>
 - `concept-index.md` — 개념명 → 페이지 경로 + aliases
 - `synthesis-index.md` — synthesis 페이지 + 연결 목록
 
-### 7. 로그 기록
+### 9. 로그 기록
 
 `_compile_log.md`에 처리 결과를 테이블 행으로 추가한다:
 
@@ -76,7 +98,7 @@ shasum -a 256 raw/<filename>
 | date | source_file | sha256 | status | derived_pages | concepts_touched | notes |
 ```
 
-### 8. 결과 보고
+### 10. 결과 보고
 
 무엇을 새로 만들고, 갱신하고, 스킵했는지 요약한다.
 

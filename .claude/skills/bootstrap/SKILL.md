@@ -45,15 +45,7 @@ description: "볼트 초기 셋업을 한 번에 수행하는 1회성 스킬. wi
 `.obsidian/app.json`:
 - `userIgnoreFilters`에서 더 이상 필요 없는 항목을 정리한다.
 
-`.obsidian/graph.json`:
-- `showArrow: true` — 링크 방향 화살표 활성화
-- `hideUnresolved: true` — 미해결 링크 숨김
-- `showOrphans: false` — 고아 노드 숨김
-- `textFadeMultiplier: -0.5` — 노드 라벨 가독성 향상
-- `colorGroups` 추가:
-  - source (파랑): `{"query": "path:wiki/sources", "color": {"a": 1, "r": 68, "g": 138, "b": 255}}`
-  - concept (주황): `{"query": "path:wiki/concepts", "color": {"a": 1, "r": 255, "g": 165, "b": 0}}`
-  - synthesis (초록): `{"query": "path:wiki/syntheses", "color": {"a": 1, "r": 76, "g": 175, "b": 80}}`
+> **참고:** 그래프 뷰의 색상/화살표 설정(`graph.json`)은 Obsidian UI에서 직접 설정해야 한다. 파일로 수정하면 Obsidian이 덮어쓴다. `docs/vault-system-guide.md`의 8-2 섹션에 설정 방법이 있다.
 
 ### 4. 초기 컴파일 실행
 

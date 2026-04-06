@@ -27,6 +27,7 @@ wiki/ 지식 그래프의 구조적 품질을 점검하고, 발견된 문제를 
 - **중복 concept** — `aliases`를 기준으로 이름만 다른 같은 개념 탐지
 - **고아 concept** — 어떤 source나 synthesis에서도 참조하지 않는 concept 페이지
 - **고아 source** — 어떤 concept에도 연결 안 된 source 페이지
+- **원본 없는 source** — `source_file` 필드가 가리키는 raw 파일이 실제로 존재하지 않는 경우 (사용자가 raw 파일을 삭제하거나 이름을 바꿨을 때 발생)
 - **깨진 링크** — `[[wiki links]]`가 존재하지 않는 페이지를 가리키는 경우
 
 ### 4. 인덱스 동기화

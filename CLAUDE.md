@@ -33,7 +33,7 @@ This restores context from previous sessions so work can continue without re-dis
 
 ## Directory Contract
 
-- `raw/` is the inbox for source material. Any format is accepted: markdown, text, PDF text extracts, web clippings, transcripts (YouTube, podcast), etc.
+- `raw/` is the inbox for source material. Any format is accepted: markdown, text, PDF text extracts, web clippings, transcripts (YouTube, podcast), etc. Non-text files (PDF binaries, images) must be converted to text/markdown before placing in raw/.
 - `wiki/` is the canonical knowledge layer.
 - `output/` is for generated deliverables that are not yet canonical.
 - `_compile_log.md` is the ingest and compile manifest.
@@ -174,7 +174,7 @@ instead of visible `_index.md` files.
 Every substantial page in `wiki/` should include frontmatter or an equivalent top section with at least:
 
 - `type` — source | concept | synthesis
-- `topic` — coarse organizational lens
+- `topic` — coarse organizational lens (list allowed if multiple topics apply)
 - `concepts` — list of related concept page names
 - `aliases` — alternate names for deduplication (optional for sources, recommended for concepts)
 - `source_file` or `sources` — provenance pointers

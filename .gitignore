@@ -1,1 +1,12 @@
+# 컴파일 결과물 (bootstrap으로 재생성 가능)
+wiki/sources/
+wiki/concepts/
+wiki/syntheses/
+wiki/.system/
+_compile_log.md
+
+# Obsidian 설정 (사용자마다 다름)
+.obsidian/
+
+# OS
 .DS_Store
