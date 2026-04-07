@@ -158,18 +158,17 @@ flowchart TB
 
     subgraph PROCESS["파일마다 처리"]
         direction TB
-        P1["source 페이지 생성/갱신"]
-        P2["기존 concept과 연결"]
-        P3["새 concept 필요하면 생성"]
-        P4["🔗 모든 [[링크]] 타깃 존재 검증"]
-        P5["synthesis 검토 + 생성"]
-        P6["모순 발견 시 양쪽 페이지에 기록"]
-        P1 --> P2 --> P3 --> P4 --> P5 --> P6
+        P1["5. source 페이지 생성/갱신<br/>(요약+구조화+[[링크]] 삽입)"]
+        P2["6. 링크 수집<br/>grep으로 [[링크]] 전수 추출"]
+        P3["7. concept 연결/생성<br/>수집된 링크 vs index.md 대조"]
+        P4["8. synthesis 검토 + 생성"]
+        P5["모순 발견 시 양쪽 페이지에 기록"]
+        P1 --> P2 --> P3 --> P4 --> P5
     end
 
-    PROCESS --> INDEX["wiki/index.md 갱신"]
-    INDEX --> LOG["_compile_log.md에 append"]
-    LOG --> REPORT["결과 요약 보고"]
+    PROCESS --> INDEX["9. wiki/index.md 갱신"]
+    INDEX --> LOG["10. _compile_log.md에 append"]
+    LOG --> REPORT["11. 결과 요약 보고"]
 ```
 
 **컴파일의 핵심 원칙:**
@@ -179,6 +178,30 @@ flowchart TB
 - 새 데이터가 기존 주장과 모순되면 양쪽 페이지에 명시
 - `[[링크]]` **타깃이 실제 존재하는지 반드시 검증** — 없으면 concept를 생성하거나 링크를 제거
 - **synthesis는 "검토"만이 아니라 "생성"도 포함** — 동일 주제 source가 3개 이상이면 synthesis 생성을 검토
+- source 페이지는 원문 복사가 아니라 **핵심 클레임을 추출·요약·구조화한 컴파일 결과물**이다. 원문이 필요하면 `raw/`에서 읽는다.
+
+### index.md의 역할: 컴파일의 지도
+
+`wiki/index.md`는 단순한 목차가 아니라 **컴파일 전 과정에서 LLM이 참조하는 지도**다. Karpathy 원문에서:
+
+> "When answering a query, the LLM reads the index first to find relevant pages, then drills into them."
+
+컴파일도 마찬가지다. LLM은 index.md를 먼저 읽고, 거기서 기존 위키의 전체 구조를 파악한 뒤에 새 자료를 통합한다.
+
+**컴파일 단계별 index.md 활용:**
+
+| 단계 | index.md 활용 방식 |
+| --- | --- |
+| **링크 수집** (Step 6) | Step 5에서 생성한 source 페이지들을 `grep`으로 다시 읽어서 `[[wiki links]]`를 **기계적으로 전수 수집**한다. 수집된 목록과 index.md의 기존 페이지를 대조하여 "존재하지 않는 링크 타깃" 목록을 만든다. LLM의 기억이 아닌 파일 시스템에서 추출하므로 모델 성능과 무관하게 누락이 없다. |
+| **concept 연결/생성** (Step 7) | Step 6의 "존재하지 않는 링크 타깃" 목록을 하나씩 처리한다. index.md의 Concepts 섹션과 기존 concept의 **aliases**까지 대조하여, 이름만 다른 같은 개념이면 링크를 수정하고, 진짜 없으면 새로 만든다. 처리 후 누락 0개를 재확인한다. |
+| **synthesis 검토** (Step 8) | index.md의 Sources 섹션에서 동일 topic의 source 수를 센다. 3개 이상이면서 관련 synthesis가 Syntheses 섹션에 없으면 생성을 검토한다. |
+| **인덱스 갱신** (Step 9) | 새로 생성/갱신된 source, concept, synthesis를 index.md에 반영한다. 실제 `wiki/` 파일과 index의 불일치가 없도록 동기화한다. |
+
+**왜 Step 6(링크 수집)이 별도 단계인가?**
+
+기존에는 Step 5(source 생성)에서 `[[링크]]`를 삽입하고, 바로 다음에서 concept를 생성했다. 문제는 source를 여러 개 만들면 LLM이 **어떤 링크를 삽입했는지 기억을 잃는다**는 점이다 (컨텍스트 희석). Opus급은 유지하지만 약한 모델에서 concept 누락이 빈발했다. `grep`으로 기계적으로 추출하면 모델 성능과 무관하게 누락이 발생하지 않는다.
+
+**요약:** index.md가 없거나 비어있으면 LLM은 기존 위키 구조를 모른 채 컴파일하게 되고, 중복 concept 생성, 깨진 링크, 누락된 synthesis가 발생한다. **index.md는 컴파일 품질의 전제 조건**이다.
 
 ### 5-2. 질문 답변 — 위키 → 답변
 

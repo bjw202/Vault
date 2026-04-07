@@ -55,24 +55,39 @@ raw/는 원본 보관소(source of truth)이고, wiki/는 LLM이 컴파일한 �
 5. raw 파일이 이미지를 참조하면 wiki 페이지에서도 `![[filename.png]]` 형식으로 보존한다.
 6. 원문이 필요하면 `raw/`에서 직접 읽는다 — wiki에 원문을 중복 보관하지 않는다.
 
-### 6. 개념 연결 및 생성
+### 6. 링크 수집 (Step 5 → 6 연결)
 
-1. `wiki/index.md`의 Concepts 섹션을 참조하여 기존 concept와 연결한다.
-2. aliases까지 확인하여 이름만 다른 같은 개념이 이미 있는지 체크한다.
-3. 반복 등장하는 개념인데 concept 페이지가 없으면 `wiki/concepts/`에 새로 만든다.
-4. 모든 `[[링크]]` 타깃이 실제 존재하는지 검증한다. 없으면 생성하거나 링크를 제거한다.
+Step 5에서 생성한 source 페이지들을 **모두 다시 읽어서** 본문에 삽입된 `[[wiki links]]`를 전수 수집한다.
 
-### 7. Synthesis 검토 및 생성
+```bash
+grep -roh '\[\[[^]]*\]\]' wiki/sources/ | sort -u
+```
+
+수집된 링크 목록과 `wiki/index.md`의 기존 페이지 목록을 대조하여:
+- **이미 존재** → 스킵
+- **존재하지 않음** → Step 7에서 생성 대상으로 등록
+
+이 단계는 LLM의 기억에 의존하지 않고 **파일 시스템에서 기계적으로 추출**하므로 누락이 발생하지 않는다.
+
+### 7. 개념 연결 및 생성
+
+Step 6에서 수집한 "존재하지 않는 링크 타깃" 목록을 하나씩 처리한다:
+
+1. `wiki/index.md`의 Concepts 섹션과 기존 concept의 aliases를 확인하여, 이름만 다른 같은 개념이 있으면 source 페이지의 링크를 기존 concept로 수정한다.
+2. 기존 concept에 해당하지 않으면 `wiki/concepts/`에 새로 만든다.
+3. 처리 후 누락된 링크 타깃이 0개인지 다시 확인한다.
+
+### 8. Synthesis 검토 및 생성
 
 - 기존 synthesis 페이지에 영향이 있으면 갱신한다.
 - 동일 주제 source가 3개 이상이고 관련 synthesis가 없으면 생성을 검토한다.
 - synthesis가 0개인 topic이 있으면 사용자에게 생성 여부를 확인한다.
 
-### 8. 인덱스 갱신
+### 9. 인덱스 갱신
 
 `wiki/index.md`를 갱신한다. Sources, Concepts, Syntheses 섹션을 실제 파일과 동기화한다.
 
-### 9. 로그 기록
+### 10. 로그 기록
 
 `_compile_log.md`에 한 줄씩 append한다:
 
@@ -80,7 +95,7 @@ raw/는 원본 보관소(source of truth)이고, wiki/는 LLM이 컴파일한 �
 ## [2026-04-06] new | raw/filename.md → wiki-page-name | sha256:abc123...
 ```
 
-### 10. 결과 보고
+### 11. 결과 보고
 
 무엇을 새로 만들고, 갱신하고, 스킵했는지 요약한다.
 
