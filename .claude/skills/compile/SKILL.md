@@ -45,9 +45,15 @@ kebab-case 영어로 정규화한다 (`삼성전자 분석.md` → `samsung-anal
 
 ### 5. 소스 페이지 생성/갱신
 
+raw/는 원본 보관소(source of truth)이고, wiki/는 LLM이 컴파일한 지식 계층이다.
+소스 페이지는 원문 복사가 아니라 **핵심 클레임을 추출·요약·구조화한 컴파일 결과물**이다.
+
 1. `wiki/sources/`에 source 페이지를 생성하거나 갱신한다.
 2. frontmatter에 `type`, `topic`, `concepts`, `source_file`, `updated`, `checksum`을 포함한다.
-3. raw 파일이 이미지를 참조하면 wiki 페이지에서도 `![[filename.png]]` 형식으로 보존한다.
+3. 본문은 원문을 그대로 옮기지 않는다. 핵심 주장, 데이터, 구조를 추출하여 불릿 중심의 밀도 높은 요약으로 작성한다.
+4. `[[wiki links]]`로 관련 concept/source를 연결한다.
+5. raw 파일이 이미지를 참조하면 wiki 페이지에서도 `![[filename.png]]` 형식으로 보존한다.
+6. 원문이 필요하면 `raw/`에서 직접 읽는다 — wiki에 원문을 중복 보관하지 않는다.
 
 ### 6. 개념 연결 및 생성
 
