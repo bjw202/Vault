@@ -7,12 +7,10 @@ description: "raw/ 자료를 wiki/로 컴파일하는 지식 그래프 빌드 �
 
 raw/ 자료를 wiki/로 변환하는 전체 파이프라인.
 
-이 스킬의 핵심은 raw 파일을 읽고, source/concept/synthesis 페이지를 생성/갱신하고, 인덱스를 동기화하고, 컴파일 로그를 기록하는 것이다.
-
 ## 사전 조건
 
-- `CLAUDE.md`를 읽어서 Required Metadata, Standard Page Template, Change Detection 규칙을 확인한다.
-- `wiki/.system/` 인덱스 파일이 존재하지 않으면 먼저 `/bootstrap`을 실행하도록 안내한다.
+- `wiki/index.md`가 존재하지 않으면 빈 틀로 생성한다.
+- `_compile_log.md`가 비어있으면 `# Compile Log` 헤더만 추가한다 (기존 내용은 절대 교체하지 않는다).
 
 ## 실행 절차
 
@@ -23,6 +21,7 @@ raw/ 자료를 wiki/로 변환하는 전체 파이프라인.
 ### 2. 변경 감지
 
 `raw/` 디렉토리를 스캔하고, 각 파일의 sha256 해시를 계산한다.
+`raw/assets/`는 이미지/첨부파일 폴더이므로 소스 컴파일 대상에서 제외한다.
 
 ```bash
 shasum -a 256 raw/<filename>
@@ -35,67 +34,44 @@ shasum -a 256 raw/<filename>
 
 ### 3. 처리 범위 결정
 
-신규/변경된 파일 수에 따라 처리 방식을 나눈다:
-
 - **3개 이하** → 한 세션에서 모두 처리
-- **4개 이상** → 파일 하나씩 순차 처리 (파일 하나 완료할 때마다 로그 기록)
+- **4개 이상** → 파일 하나씩 순차 처리 (파일마다 로그 기록)
 
-파일 하나씩 처리하는 이유: 논문 등 대용량 파일이 여러 개 들어오면 컨텍스트 한계에 도달할 수 있다. 파일마다 로그를 기록하면 중간에 세션이 끊겨도 다음 `/compile`에서 이어서 처리할 수 있다.
-
-처리 도중 컨텍스트가 부족해지면:
-1. 현재 파일까지 로그를 기록한다
-2. 사용자에게 "N개 파일 중 M개 완료. 나머지는 `/compile`을 다시 실행해주세요"라고 안내한다
+컨텍스트가 부족해지면 현재 파일까지 로그 기록 후 사용자에게 `/compile` 재실행을 안내한다.
 
 ### 4. 소스 페이지 파일명 결정
 
-source 페이지 파일명은 raw 파일명을 기반으로 kebab-case 영어로 정규화한다:
-- 공백 → 하이픈 (`삼성전자 분석.md` → `samsung-analysis.md`)
-- 한글 → 영어 번역 또는 음역
-- 특수문자/괄호 → 제거
-- 대문자 → 소문자
-- 이미 같은 이름의 source 페이지가 있으면 뒤에 숫자를 붙인다 (`-2`, `-3`)
+kebab-case 영어로 정규화한다 (`삼성전자 분석.md` → `samsung-analysis.md`).
 
 ### 5. 소스 페이지 생성/갱신
 
-신규/변경된 파일마다:
-
 1. `wiki/sources/`에 source 페이지를 생성하거나 갱신한다.
-2. CLAUDE.md의 Required Metadata를 frontmatter에 포함한다:
-   - `type: source`
-   - `topic`
-   - `concepts` (추출한 개념 목록)
-   - `aliases` (해당시)
-   - `source_file: raw/<filename>`
-   - `updated: <오늘 날짜>`
-   - `checksum: <sha256>`
-3. Standard Page Template을 따른다:
-   - Summary, Key Takeaways, Sources, Related Concepts, Related Pages, Open Questions
+2. frontmatter에 `type`, `topic`, `concepts`, `source_file`, `updated`, `checksum`을 포함한다.
+3. raw 파일이 이미지를 참조하면 wiki 페이지에서도 `![[filename.png]]` 형식으로 보존한다.
 
 ### 6. 개념 연결 및 생성
 
-1. `wiki/.system/concept-index.md`를 참조하여 기존 concept와 연결한다.
-2. aliases까지 확인하여 이름만 다른 같은 개념이 이미 있는지 반드시 체크한다.
+1. `wiki/index.md`의 Concepts 섹션을 참조하여 기존 concept와 연결한다.
+2. aliases까지 확인하여 이름만 다른 같은 개념이 이미 있는지 체크한다.
 3. 반복 등장하는 개념인데 concept 페이지가 없으면 `wiki/concepts/`에 새로 만든다.
-4. 새 concept 페이지에도 Required Metadata와 Standard Page Template을 적용한다.
+4. 모든 `[[링크]]` 타깃이 실제 존재하는지 검증한다. 없으면 생성하거나 링크를 제거한다.
 
-### 7. Synthesis 검토
+### 7. Synthesis 검토 및 생성
 
-기존 synthesis 페이지에 영향이 있는지 검토하고, 필요하면 갱신한다.
+- 기존 synthesis 페이지에 영향이 있으면 갱신한다.
+- 동일 주제 source가 3개 이상이고 관련 synthesis가 없으면 생성을 검토한다.
+- synthesis가 0개인 topic이 있으면 사용자에게 생성 여부를 확인한다.
 
 ### 8. 인덱스 갱신
 
-`wiki/.system/` 인덱스 4개를 모두 갱신한다:
-- `master-index.md` — 전체 wiki 페이지 목록
-- `source-index.md` — raw 파일 → source 페이지 + checksum
-- `concept-index.md` — 개념명 → 페이지 경로 + aliases
-- `synthesis-index.md` — synthesis 페이지 + 연결 목록
+`wiki/index.md`를 갱신한다. Sources, Concepts, Syntheses 섹션을 실제 파일과 동기화한다.
 
 ### 9. 로그 기록
 
-`_compile_log.md`에 처리 결과를 테이블 행으로 추가한다:
+`_compile_log.md`에 한 줄씩 append한다:
 
 ```
-| date | source_file | sha256 | status | derived_pages | concepts_touched | notes |
+## [2026-04-06] new | raw/filename.md → wiki-page-name | sha256:abc123...
 ```
 
 ### 10. 결과 보고
@@ -105,6 +81,5 @@ source 페이지 파일명은 raw 파일명을 기반으로 kebab-case 영어로
 ## 주의사항
 
 - `[[wiki links]]`를 사용하여 페이지 간 연결을 만든다.
-- 출처가 불명확하면 "출처 미확인"으로 명시한다. 지어내지 않는다.
-- LLM이 추론한 내용은 추론임을 표시한다.
-- 개념 이름은 기존 concept-index.md의 표기를 따른다. 새 이름을 만들기 전에 기존 이름을 확인한다.
+- 출처가 불명확하면 "출처 미확인"으로 명시한다.
+- 개념 이름은 기존 `wiki/index.md`의 표기를 따른다.
