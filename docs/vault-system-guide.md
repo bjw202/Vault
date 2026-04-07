@@ -1,14 +1,28 @@
 # Vault 시스템 동작 가이드
 
-> 이 문서는 Vault 지식 관리 시스템이 어떻게 동작하는지 설명한다. Obsidian에서 Mermaid 플러그인을 켜면 차트가 렌더링된다. \*\***설계 철학:** Karpathy의 [LLM Wiki 패턴](https://gist.github.com/karpathy/1dd0294ef9567971c1e4348a90d69285)을 기반으로 한다. 핵심은 **얇은 schema, append-only 로그, 3개 레이어, 3개 연산**.
+> Obsidian에서 Mermaid 플러그인을 켜면 차트가 렌더링된다.
 
 ---
 
-## 1. 한 문장 요약
+## 1. 설계 철학: Karpathy의 LLM Wiki
 
-**사용자가 자료를 넣고 질문하면, LLM이 자동으로 지식 그래프를 만들고 유지한다.**
+이 시스템은 Karpathy의 [LLM Wiki 패턴](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)을 구현한 것이다.
 
-일반적인 RAG는 질문할 때마다 원본을 처음부터 뒤진다. 이 시스템은 다르다. 자료가 들어오면 LLM이 한 번 **컴파일**해서 정리해두고, 이후엔 정리된 위키에서 바로 답을 찾는다.
+**핵심 아이디어:** 일반 RAG는 질문할 때마다 원본을 처음부터 뒤진다. LLM Wiki는 다르다. 자료가 들어오면 LLM이 한 번 **컴파일**해서 위키로 정리하고, 이후엔 위키에서 바로 답을 찾는다. 위키는 자료가 쌓일수록 복리로 풍부해진다.
+
+**Karpathy 원칙 → 우리 설계:**
+
+| Karpathy 원칙 | 우리 구현 | 이유 |
+| --- | --- | --- |
+| 3 layers (raw / wiki / schema) | `raw/` → `wiki/` → `CLAUDE.md` | 원본은 불변, 위키는 LLM이 소유, schema는 계약 |
+| `index.md` 1개 | `wiki/index.md` | 4개 인덱스는 동기화 비용 &gt; 가치. 1개면 충분 |
+| `log.md` 1개, append-only | `_compile_log.md` | 절대 교체하지 않는다. grep으로 파싱 가능 |
+| 3 operations (ingest / query / lint) | `/compile`, Query, `/graph-lint` | 그 이상은 과잉. 이 3개가 전부 |
+| Schema는 얇은 계약 | `CLAUDE.md` \~69줄 | 매 세션 자동 로드 → 짧을수록 좋다 |
+| "Everything is optional and modular" | schema(무엇을) ↔ skill(어떻게) 분리 | SKILL은 해당 명령어 실행 시에만 로드 |
+| Obsidian은 IDE | 그래프 뷰 + `[[wiki links]]` | LLM이 프로그래머, 위키가 코드베이스 |
+
+**한 문장 요약:** 사용자가 자료를 넣고 질문하면, LLM이 자동으로 지식 그래프를 만들고 유지한다.
 
 ---
 
@@ -64,7 +78,7 @@ flowchart TB
 
     subgraph SCHEMA["📋 3계층: Schema"]
         direction LR
-        CMD["CLAUDE.md<br/>얇은 계약 (~75줄)"]
+        CMD["CLAUDE.md<br/>얇은 계약 (~69줄)"]
         SKILLS["skills/<br/>실행 절차 상세"]
     end
 
@@ -85,7 +99,7 @@ Karpathy 철학의 핵심: schema는 **얇은 계약**이어야 한다.
 
 | 파일 | 역할 | 내용 |
 | --- | --- | --- |
-| `CLAUDE.md` (\~75줄) | **Schema** — "무엇을" | 계층 정의, 메타데이터 규약, 3대 연산 선언, 무결성 규칙 |
+| `CLAUDE.md` (\~69줄) | **Schema** — "무엇을" | 계층 정의, 메타데이터 규약, 3대 연산 선언, 무결성 규칙 |
 | `skills/compile/SKILL.md` | **Runbook** — "어떻게" | 컴파일 10단계 절차, 파일명 정규화, 대용량 처리 |
 | `skills/graph-lint/SKILL.md` | **Runbook** | 린트 점검 항목, 자동 수정 규칙 |
 
@@ -254,7 +268,7 @@ Vault/
 │   ├── compile/SKILL.md
 │   └── graph-lint/SKILL.md
 ├── _compile_log.md               ← 컴파일 이력 (append-only)
-├── CLAUDE.md                     ← 시스템 규칙 (얇은 schema, ~75줄)
+├── CLAUDE.md                     ← 시스템 규칙 (얇은 schema, ~69줄)
 └── .obsidian/                    ← Obsidian 설정
 ```
 
@@ -477,7 +491,7 @@ Claude Code와 Codex CLI의 4라운드 코드 토론(`docs/debate-2026-04-07T01-
 | **CRITICAL** | bootstrap이 `_compile_log.md`를 통째로 교체 → 이력 소실 가능 | "기존 내용을 테이블 포맷으로 교체한다"라는 지시 | "비어있을 때만 초기화, 있으면 보존"으로 변경. Karpathy의 append-only 원칙 준수 |
 | **HIGH** | synthesis 계층이 완전히 비어있음 (dead layer) | compile 7단계가 "검토+갱신"만 하고 "생성"을 누락 | "검토+갱신+생성"으로 확장. source 3개 이상이면 synthesis 생성 검토 |
 | **HIGH** | `[[brand-context-management]]` 등 깨진 링크 | compile의 concept 생성 규칙 미이행 | 모든 `[[링크]]` 타깃 존재 검증 단계 추가 |
-| **HIGH** | CLAUDE.md가 schema가 아니라 runbook | 395줄에 메타데이터+워크플로우+QA+린트 전부 포함 | **395줄 → 144줄**로 축소. 워크플로우 상세는 SKILL로 위임 (이후 Phase 4에서 ~75줄로 추가 축소) |
+| **HIGH** | CLAUDE.md가 schema가 아니라 runbook | 395줄에 메타데이터+워크플로우+QA+린트 전부 포함 | **395줄 → 144줄**로 축소. 워크플로우 상세는 SKILL로 위임 (이후 Phase 4에서 \~69줄로 추가 축소) |
 | **MEDIUM** | push 스킬의 `git add .`가 LLM 판단 없이 실행 | `disable-model-invocation: true`에서 보안 체크 불가 | `git add -A --dry-run` → 사용자 확인 → `git add` 순서로 변경 |
 | **MEDIUM** | Obsidian 설정 오염 | workspace.json에 삭제된 파일 경로, graph.json에 공백 오타 | stale 경로 제거, 공백 오타 수정 |
 
@@ -494,8 +508,8 @@ Phase 3에서 구조적 결함을 수정했지만, 여전히 불필요한 복잡
 | --- | --- | --- | --- |
 | **인덱스 통합** | `wiki/.system/` 아래 인덱스 4개 (master, concept, source, synthesis) | `wiki/index.md` 1개 | 4개 인덱스를 동기화하는 비용이 가치보다 큼. 단일 인덱스면 충분 |
 | **스킬 축소** | 4개 (compile, graph-lint, bootstrap, push) | 2개 (compile, graph-lint) | bootstrap은 1회성이라 스킬로 유지할 필요 없음. push는 git 명령어로 충분 |
-| **컴파일 로그 포맷** | 7열 마크다운 테이블 | grep-friendly 단일 라인: `## [날짜] status \| raw/file → wiki-page \| sha256:hash` | 테이블은 파싱도 어렵고 가독성도 떨어짐. 한 줄 포맷이 append-only에 적합 |
-| **CLAUDE.md 축소** | ~144줄 | ~75줄 | Schema를 더 얇게. 세션마다 로드되는 컨텍스트 최소화 |
+| **컴파일 로그 포맷** | 7열 마크다운 테이블 | grep-friendly 단일 라인: \`## \[날짜\] status | raw/file → wiki-page |
+| **CLAUDE.md 축소** | \~144줄 | \~69줄 | Schema를 더 얇게. 세션마다 로드되는 컨텍스트 최소화 |
 | **.system/ 폴더 제거** | `wiki/.system/` 숨김 폴더 | `wiki/index.md` 직접 배치 | 숨길 이유가 없음. Obsidian에서 바로 보이는 것이 오히려 유용 |
 
 ### 학습된 설계 원칙
