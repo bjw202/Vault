@@ -77,15 +77,31 @@ Step 6에서 수집한 "존재하지 않는 링크 타깃" 목록을 하나씩 �
 2. 기존 concept에 해당하지 않으면 `wiki/concepts/`에 새로 만든다.
 3. 처리 후 누락된 링크 타깃이 0개인지 다시 확인한다.
 
-### 8. Synthesis 검토 및 생성
+### 8. Synthesis 생성/갱신
 
-- 기존 synthesis 페이지에 영향이 있으면 갱신한다.
-- 동일 주제 source가 3개 이상이고 관련 synthesis가 없으면 생성을 검토한다.
-- synthesis가 0개인 topic이 있으면 사용자에게 생성 여부를 확인한다.
+모든 source 페이지의 frontmatter `topic` 필드를 수집하여 topic별 source 수를 기계적으로 센다:
+
+```bash
+grep -r '^topic:' wiki/sources/ | sed 's/.*topic: //'
+```
+
+1. topic별 source 수를 카운팅한다.
+2. **3개 이상인 topic**을 추출하고, 해당 topic에 대한 synthesis가 `wiki/syntheses/`에 있는지 `ls`로 확인한다.
+3. synthesis가 없는 topic → `wiki/syntheses/`에 **새로 생성한다**. 관련 source 페이지들을 읽고 통합 분석을 작성한다.
+4. 기존 synthesis가 있지만 새 source가 추가된 경우 → 기존 synthesis를 **갱신한다**.
+5. 생성/갱신한 synthesis 수가 0이어도 정상이다 (topic당 source가 3개 미만이면).
 
 ### 9. 인덱스 갱신
 
-`wiki/index.md`를 갱신한다. Sources, Concepts, Syntheses 섹션을 실제 파일과 동기화한다.
+`wiki/`의 실제 파일 목록을 기계적으로 수집한다:
+
+```bash
+ls wiki/sources/ wiki/concepts/ wiki/syntheses/
+```
+
+`wiki/index.md`의 각 섹션과 대조하여:
+- 파일은 있는데 index에 없음 → index에 추가
+- index에 있는데 파일이 없음 → index에서 제거
 
 ### 10. 로그 기록
 
@@ -95,7 +111,19 @@ Step 6에서 수집한 "존재하지 않는 링크 타깃" 목록을 하나씩 �
 ## [2026-04-06] new | raw/filename.md → wiki-page-name | sha256:abc123...
 ```
 
-### 11. 결과 보고
+### 11. 최종 검증
+
+wiki/ 전체에서 `[[wiki links]]`를 추출하고, 타깃 파일 존재 여부를 일괄 확인한다:
+
+```bash
+grep -roh '\[\[[^]]*\]\]' wiki/ | sort -u
+```
+
+수집된 링크 타깃 각각에 대해 `wiki/sources/`, `wiki/concepts/`, `wiki/syntheses/`에 해당 파일이 있는지 확인한다.
+- 존재하지 않는 타깃 → concept 페이지를 생성하거나 링크를 제거한다.
+- **누락이 0개여야 컴파일 완료로 판정한다.**
+
+### 12. 결과 보고
 
 무엇을 새로 만들고, 갱신하고, 스킵했는지 요약한다.
 

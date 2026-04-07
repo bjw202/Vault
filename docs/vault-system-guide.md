@@ -161,14 +161,15 @@ flowchart TB
         P1["5. source 페이지 생성/갱신<br/>(요약+구조화+[[링크]] 삽입)"]
         P2["6. 링크 수집<br/>grep으로 [[링크]] 전수 추출"]
         P3["7. concept 연결/생성<br/>수집된 링크 vs index.md 대조"]
-        P4["8. synthesis 검토 + 생성"]
+        P4["8. synthesis 생성/갱신<br/>topic별 source ≥3 → 기계적 카운팅"]
         P5["모순 발견 시 양쪽 페이지에 기록"]
         P1 --> P2 --> P3 --> P4 --> P5
     end
 
-    PROCESS --> INDEX["9. wiki/index.md 갱신"]
+    PROCESS --> INDEX["9. wiki/index.md 갱신<br/>ls wiki/*/ vs index 대조"]
     INDEX --> LOG["10. _compile_log.md에 append"]
-    LOG --> REPORT["11. 결과 요약 보고"]
+    LOG --> VERIFY["11. 최종 검증<br/>wiki/ 전체 [[링크]] grep → 누락 0개"]
+    VERIFY --> REPORT["12. 결과 요약 보고"]
 ```
 
 **컴파일의 핵심 원칙:**
@@ -194,12 +195,13 @@ flowchart TB
 | --- | --- |
 | **링크 수집** (Step 6) | Step 5에서 생성한 source 페이지들을 `grep`으로 다시 읽어서 `[[wiki links]]`를 **기계적으로 전수 수집**한다. 수집된 목록과 index.md의 기존 페이지를 대조하여 "존재하지 않는 링크 타깃" 목록을 만든다. LLM의 기억이 아닌 파일 시스템에서 추출하므로 모델 성능과 무관하게 누락이 없다. |
 | **concept 연결/생성** (Step 7) | Step 6의 "존재하지 않는 링크 타깃" 목록을 하나씩 처리한다. index.md의 Concepts 섹션과 기존 concept의 **aliases**까지 대조하여, 이름만 다른 같은 개념이면 링크를 수정하고, 진짜 없으면 새로 만든다. 처리 후 누락 0개를 재확인한다. |
-| **synthesis 검토** (Step 8) | index.md의 Sources 섹션에서 동일 topic의 source 수를 센다. 3개 이상이면서 관련 synthesis가 Syntheses 섹션에 없으면 생성을 검토한다. |
-| **인덱스 갱신** (Step 9) | 새로 생성/갱신된 source, concept, synthesis를 index.md에 반영한다. 실제 `wiki/` 파일과 index의 불일치가 없도록 동기화한다. |
+| **synthesis 생성/갱신** (Step 8) | 모든 source 페이지의 frontmatter `topic`을 수집하여 topic별 source 수를 **기계적으로 카운팅**한다. 3개 이상인 topic에 대해 `wiki/syntheses/`에 파일이 있는지 `ls`로 확인하고, 없으면 생성, 있으면 갱신한다. |
+| **인덱스 갱신** (Step 9) | `ls wiki/sources/ wiki/concepts/ wiki/syntheses/`로 실제 파일 목록을 수집하고, index.md와 대조하여 누락은 추가, 불일치는 제거한다. |
+| **최종 검증** (Step 11) | `wiki/` 전체에서 `[[wiki links]]`를 grep으로 추출하고, 타깃 파일 존재 여부를 일괄 확인한다. **누락 0개여야 컴파일 완료로 판정.** |
 
-**왜 Step 6(링크 수집)이 별도 단계인가?**
+**왜 기계적 단계가 중요한가?**
 
-기존에는 Step 5(source 생성)에서 `[[링크]]`를 삽입하고, 바로 다음에서 concept를 생성했다. 문제는 source를 여러 개 만들면 LLM이 **어떤 링크를 삽입했는지 기억을 잃는다**는 점이다 (컨텍스트 희석). Opus급은 유지하지만 약한 모델에서 concept 누락이 빈발했다. `grep`으로 기계적으로 추출하면 모델 성능과 무관하게 누락이 발생하지 않는다.
+Step 6(링크 수집), Step 8(synthesis 카운팅), Step 9(인덱스 대조), Step 11(최종 검증)은 모두 `grep`/`ls` 같은 **기계적 추출 → 목록 대조 → 하나씩 처리** 패턴을 따른다. LLM의 기억이나 판단에 의존하면 약한 모델에서 concept 미생성, synthesis 스킵, 인덱스 불일치가 발생한다. 파일 시스템에서 기계적으로 추출하면 모델 성능과 무관하게 누락이 없다.
 
 **요약:** index.md가 없거나 비어있으면 LLM은 기존 위키 구조를 모른 채 컴파일하게 되고, 중복 concept 생성, 깨진 링크, 누락된 synthesis가 발생한다. **index.md는 컴파일 품질의 전제 조건**이다.
 
