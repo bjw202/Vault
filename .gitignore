@@ -1,6 +1,8 @@
-# 컴파일 결과물 (raw/ + 스킬로 재생성 가능)
+# 사용자 데이터 (배포 대상 아님)
+raw/
 wiki/
 _compile_log.md
+docs/
 
 # Obsidian 설정 (사용자마다 다름)
 .obsidian/
