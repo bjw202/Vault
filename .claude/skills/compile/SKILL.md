@@ -38,57 +38,49 @@ shasum -a 256 raw/<filename>
 
 컨텍스트가 부족해지면 현재 파일까지 로그 기록 후 사용자에게 `/compile` 재실행을 안내한다.
 
-### 4. 소스 페이지 파일명 결정
+### 4. 파일명 규칙 (모든 wiki 페이지 공통)
 
-kebab-case 영어로 정규화한다 (`삼성전자 분석.md` → `samsung-analysis.md`).
+wiki/ 아래 모든 파일(source, concept, synthesis)의 파일명은 **kebab-case 영어**로 정규화한다. 한글 파일명은 절대 사용하지 않는다.
 
-### 5. 소스 페이지 생성/갱신
+- `삼성전자 분석.md` → `samsung-analysis.md`
+- `인볼류트 곡선.md` → `involute-curve.md`
+- `포락선 이론.md` → `envelope-theory.md`
+
+이 규칙은 source, concept, synthesis 모두 동일하게 적용된다. `[[wiki links]]`의 링크 타깃도 이 kebab-case 영어 이름을 사용한다. 한글 표기는 frontmatter의 `aliases` 필드에 보존한다.
+
+### 5. 소스 페이지 + 개념 생성/갱신
 
 raw/는 원본 보관소(source of truth)이고, wiki/는 LLM이 컴파일한 지식 계층이다. 소스 페이지는 원문 복사가 아니라 **핵심 클레임을 추출·요약·구조화한 컴파일 결과물**이다.
+
+source 하나를 처리할 때마다 아래 절차를 **모두 완료한 뒤** 다음 source로 넘어간다:
 
 1. `wiki/sources/`에 source 페이지를 생성하거나 갱신한다.
 2. frontmatter에 `type`, `topic`, `concepts`, `source_file`, `updated`, `checksum`을 포함한다.
 3. 본문은 원문을 그대로 옮기지 않는다. 핵심 주장, 데이터, 구조를 추출하여 불릿 중심의 밀도 높은 요약으로 작성한다.
 4. 개념 추출 및 링크 삽입: a. 본문 작성 완료 후, 이 source에서 등장하는 **핵심 개념/용어/패턴**을 5개 이상 나열한다. b. 각 개념에 대해 `wiki/index.md`의 Concepts 섹션을 확인한다:
    - 기존 concept가 있으면 → `[[기존-concept-이름]]`으로 링크
-   - 기존 concept가 없으면 → `[[새-concept-이름]]`으로 링크를 **반드시 삽입한다** (페이지가 아직 없어도 링크를 건다) c. 관련 source 페이지도 `[[source-이름]]`으로 연결한다.
+   - 기존 concept가 없으면 → `[[새-concept-이름]]`으로 링크를 삽입한다. c. 관련 source 페이지도 `[[source-이름]]`으로 연결한다.
 5. raw 파일이 이미지를 참조하면 wiki 페이지에서도 `![[filename.png]]` 형식으로 보존한다.
 6. 원문이 필요하면 `raw/`에서 직접 읽는다 — wiki에 원문을 중복 보관하지 않는다.
+7. **concept 즉시 생성** — source 작성이 끝나면 바로 실행한다: a. 위 4단계에서 삽입한 `[[concept-이름]]` 링크 목록을 확인한다. b. 각 링크에 대해 `wiki/concepts/`에 해당 파일이 이미 있는지 확인한다. c. `wiki/index.md`의 Concepts 섹션과 기존 concept의 aliases도 확인하여, 이름만 다른 같은 개념이 있으면 source 페이지의 링크를 기존 concept로 수정한다. d. 기존 concept에 해당하지 않으면 `wiki/concepts/`에 즉시 새로 만든다. 파일명은 Step 4의 규칙과 동일하게 **kebab-case 영어**로 작성한다 (예: `압력각` → `pressure-angle.md`). 한글 표기는 frontmatter `aliases`에 보존한다. frontmatter에 `type: concept`, `topic`, `aliases`를 포함한다. e. 이미 존재하는 concept는 스킵한다.
 
-### 6. 링크 수집 (Step 5 → 6 연결)
+이렇게 하면 source 하나의 처리가 끝날 때 관련 concept가 모두 존재하게 된다. 다음 source 작업 시 기존 concept를 자연스럽게 재사용할 수 있다.
 
-Step 5에서 생성한 source 페이지들을 **모두 다시 읽어서** 본문에 삽입된 `[[wiki links]]`를 전수 수집한다.
+### 6. 교차 개념 보강 (선택적)
 
-```bash
-grep -roh '\[\[[^]]*\]\]' wiki/sources/ | sort -u
-```
+Step 5에서 각 source와 함께 핵심 concept는 이미 생성되었다. 이 단계는 **보너스 패스**로, cross-source 분석을 통해 추가 concept를 식별한다:
 
-수집된 링크 목록과 `wiki/index.md`의 기존 페이지 목록을 대조하여:
-
-- **이미 존재** → 스킵
-- **존재하지 않음** → Step 7에서 생성 대상으로 등록
-
-이 단계는 LLM의 기억에 의존하지 않고 **파일 시스템에서 기계적으로 추출**하므로 누락이 발생하지 않는다.
-
-### 7. 개념 연결 및 생성
-
-두 가지 입력을 결합하여 concept 생성 대상을 결정한다:
-
-**입력 A**: Step 6에서 수집한 "존재하지 않는 링크 타깃" 목록.
-
-**입력 B**: Step 5에서 생성/갱신한 source 페이지의 본문을 직접 분석하여, `[[wiki links]]`로 표현되지 않았지만 concept로 분리할 가치가 있는 개념을 추가 식별한다. 판단 기준:
-
-- 2개 이상의 source에서 반복 등장하는 용어
+- 2개 이상의 source에서 반복 등장하지만 아직 concept 페이지가 없는 용어
 - 독립적 정의가 가능한 전문 용어/패턴/프레임워크
 
-입력 A + 입력 B를 합쳐서 중복 제거한 뒤, 각각을 처리한다:
+발견한 개념이 있으면:
 
-1. `wiki/index.md`의 Concepts 섹션과 기존 concept의 aliases를 확인하여, 이름만 다른 같은 개념이 있으면 source 페이지의 링크를 기존 concept로 수정한다.
-2. 기존 concept에 해당하지 않으면 `wiki/concepts/`에 새로 만든다.
-3. 처리 후 누락된 링크 타깃이 0개인지 다시 확인한다.
-4. 입력 B에서 발견하여 새로 생성한 concept가 있으면, 해당 개념이 등장하는 source 페이지에 `[[concept-이름]]` 링크를 삽입한다.
+1. `wiki/concepts/`에 새로 만든다.
+2. 해당 개념이 등장하는 source 페이지에 `[[concept-이름]]` 링크를 삽입한다.
 
-### 8. Synthesis 생성/갱신
+발견한 추가 개념이 없으면 이 단계를 스킵해도 된다.
+
+### 7. Synthesis 생성/갱신
 
 모든 source 페이지의 frontmatter `topic` 필드를 수집하여 topic별 source 수를 기계적으로 센다:
 
@@ -102,7 +94,7 @@ grep -r '^topic:' wiki/sources/ | sed 's/.*topic: //'
 4. 기존 synthesis가 있지만 새 source가 추가된 경우 → 기존 synthesis를 **갱신한다**.
 5. 생성/갱신한 synthesis 수가 0이어도 정상이다 (topic당 source가 3개 미만이면).
 
-### 9. 인덱스 갱신
+### 8. 인덱스 갱신
 
 `wiki/`의 실제 파일 목록을 기계적으로 수집한다:
 
@@ -115,7 +107,7 @@ ls wiki/sources/ wiki/concepts/ wiki/syntheses/
 - 파일은 있는데 index에 없음 → index에 추가
 - index에 있는데 파일이 없음 → index에서 제거
 
-### 10. 로그 기록
+### 9. 로그 기록
 
 `_compile_log.md`에 한 줄씩 append한다:
 
@@ -123,7 +115,7 @@ ls wiki/sources/ wiki/concepts/ wiki/syntheses/
 ## [2026-04-06] new | raw/filename.md → wiki-page-name | sha256:abc123...
 ```
 
-### 11. 최종 검증
+### 10. 최종 검증
 
 wiki/ 전체에서 `[[wiki links]]`를 추출하고, 타깃 파일 존재 여부를 일괄 확인한다:
 
@@ -136,7 +128,7 @@ grep -roh '\[\[[^]]*\]\]' wiki/ | sort -u
 - 존재하지 않는 타깃 → concept 페이지를 생성하거나 링크를 제거한다.
 - **누락이 0개여야 컴파일 완료로 판정한다.**
 
-### 12. 결과 보고
+### 11. 결과 보고
 
 무엇을 새로 만들고, 갱신하고, 스킵했는지 요약한다.
 
