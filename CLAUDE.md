@@ -1,4 +1,4 @@
-# CLAUDE.md
+# [CLAUDE.md](http://CLAUDE.md)
 
 This vault is an LLM-maintained personal knowledge and RAG system — a persistent, compounding wiki between you and the raw sources.
 
@@ -10,6 +10,7 @@ This vault is an LLM-maintained personal knowledge and RAG system — a persiste
 ## Session Start
 
 Read these first:
+
 1. `wiki/index.md` — what pages exist and how they connect.
 2. The last 5–10 entries of `_compile_log.md` — what was recently compiled.
 
@@ -21,8 +22,6 @@ Read these first:
   - `wiki/index.md` — catalog of all pages with links, organized by type.
 - `_compile_log.md` — append-only chronological record of ingests.
 
-Supporting: `output/` for deliverables not yet canonical.
-
 ## Three Object Types
 
 - **Source** (`wiki/sources/`) — compiled from one raw input. Preserves provenance, extracts claims.
@@ -32,16 +31,24 @@ Supporting: `output/` for deliverables not yet canonical.
 ## Three Operations
 
 ### Compile (`/compile`)
+
 Transform raw/ into wiki/. Details in `.claude/skills/compile/SKILL.md`.
+
 - Detect new/changed files via sha256
 - Create/update source, concept, and synthesis pages
 - Verify all `[[links]]` resolve to existing pages
 - Update `wiki/index.md` and append to `_compile_log.md`
 
-### Query
-Answer from the vault. Read index → concepts → sources → syntheses. Good answers get filed back as synthesis pages.
+### Query (`/query`)
+
+Answer from the vault. Details in `.claude/skills/query/SKILL.md`.
+
+- Read index → identify relevant pages → recursively follow `[[wiki links]]` (depth 2, max 15 pages)
+- Cite sources with `[[wiki links]]`, distinguish facts from inference
+- Good answers get filed back as synthesis pages
 
 ### Lint (`/graph-lint`)
+
 Health-check the wiki. Details in `.claude/skills/graph-lint/SKILL.md`.
 
 ## First-Time Setup

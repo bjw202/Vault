@@ -111,7 +111,7 @@ Karpathy 철학의 핵심: schema는 **얇은 계약**이어야 한다.
 
 ---
 
-## 4. 지식 객체 4가지
+## 4. 지식 객체 3가지
 
 ```mermaid
 flowchart LR
@@ -119,13 +119,10 @@ flowchart LR
     SOURCE -->|"개념 추출"| CONCEPT["Concept<br/>재사용 가능한 개념"]
     SOURCE -->|"통합 분석"| SYNTHESIS["Synthesis<br/>여러 소스 엮은 결론"]
     CONCEPT <-->|"상호 참조"| SYNTHESIS
-    SYNTHESIS -->|"승격"| OUTPUT["Output<br/>일회성 결과물"]
-    OUTPUT -->|"내구성 있으면<br/>역승격"| SYNTHESIS
 
     style SOURCE fill:#448aff,color:#fff
     style CONCEPT fill:#ff9800,color:#fff
     style SYNTHESIS fill:#4caf50,color:#fff
-    style OUTPUT fill:#9e9e9e,color:#fff
 ```
 
 | 객체 | 위치 | 비유 | 예시 |
@@ -133,9 +130,7 @@ flowchart LR
 | **Source** | `wiki/sources/` | 원본 자료의 요약 카드 | "AI Agency 아키텍처 요약" |
 | **Concept** | `wiki/concepts/` | 사전의 항목 | "GAN Loop", "멀티에이전트 시스템" |
 | **Synthesis** | `wiki/syntheses/` | 연구 보고서의 결론 | "Agency vs Stock Research 통신 비교" |
-| **Output** | `output/` | 일회성 산출물 | 보고서, 슬라이드, Q&A 노트 |
-
-**핵심:** Source는 1:1 요약, Concept는 여러 Source에서 반복되는 아이디어, Synthesis는 여러 개를 엮은 통합 결론.
+**핵심:** Source는 1:1 요약, Concept는 여러 Source에서 반복되는 아이디어, Synthesis는 여러 개를 엮은 통합 결론. 좋은 Query 답변은 synthesis로 승격한다.
 
 ---
 
@@ -216,9 +211,8 @@ flowchart TB
     SYNTH --> ANSWER["5. 볼트 내 지식으로 답변 생성"]
 
     ANSWER --> DECIDE{"답변이 재사용 가능한가?"}
-    DECIDE -->|"일회성"| OUTPUT["output/에 저장"]
     DECIDE -->|"내구성 있음"| PROMOTE["wiki/syntheses/에 승격"]
-    DECIDE -->|"간단한 답"| DONE["답변만 전달"]
+    DECIDE -->|"일회성/간단"| DONE["답변만 전달"]
 ```
 
 **핵심:** 좋은 답변은 사라지지 않고 위키에 축적된다.
@@ -287,7 +281,6 @@ Vault/
 │   ├── concepts/                 ← 재사용 개념 (주황색)
 │   └── syntheses/                ← 통합 분석 (초록색)
 │
-├── output/                       ← 일회성 결과물
 ├── docs/                         ← 프로젝트 문서
 ├── .claude/skills/               ← 실행 절차 (runbook)
 │   ├── compile/SKILL.md
