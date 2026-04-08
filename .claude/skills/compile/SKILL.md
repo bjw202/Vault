@@ -48,6 +48,12 @@ wiki/ 아래 모든 파일(source, concept, synthesis)의 파일명은 **kebab-c
 
 이 규칙은 source, concept, synthesis 모두 동일하게 적용된다. `[[wiki links]]`의 링크 타깃도 이 kebab-case 영어 이름을 사용한다. 한글 표기는 frontmatter의 `aliases` 필드에 보존한다.
 
+**파일명 충돌 방지**: Obsidian의 `[[wiki links]]`는 폴더와 무관하게 파일명으로만 해석되므로, sources/와 concepts/와 syntheses/ 사이에 동일한 파일명이 존재하면 링크가 모호해진다. 이를 방지하기 위해:
+- source 파일명: 원문의 주제를 서술적으로 (`involute-curve-fundamentals.md`, `gear-basic-parameters.md`)
+- concept 파일명: 개념 자체의 이름 (`involute-curve.md`, `gear-module.md`)
+- synthesis 파일명: 통합 분석의 주제 (`gear-design-overview.md`)
+- 새 파일 생성 전에 다른 폴더에 같은 이름의 파일이 없는지 확인한다.
+
 ### 5. 소스 페이지 + 개념 생성/갱신
 
 raw/는 원본 보관소(source of truth)이고, wiki/는 LLM이 컴파일한 지식 계층이다. 소스 페이지는 원문 복사가 아니라 **핵심 클레임을 추출·요약·구조화한 컴파일 결과물**이다.
