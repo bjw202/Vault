@@ -40,6 +40,12 @@ wiki/ 안에서 **기계가 매칭하는 값**은 전부 kebab-case 영어로 �
 shasum -a 256 raw/<filename>
 ```
 
+또는 변경 감지 스크립트를 사용한다:
+
+```bash
+.claude/skills/compile/scripts/detect-changes.sh
+```
+
 `_compile_log.md`에 기록된 해시와 비교:
 
 - 해시가 없는 파일 → **신규**
@@ -63,6 +69,10 @@ source 하나를 처리할 때마다 아래 절차를 **모두 완료한 뒤** �
 4. 개념 추출 및 링크 삽입: 본문에서 핵심 개념 5개 이상을 식별하고, `[[wiki links]]`로 연결한다. `wiki/index.md`에 기존 concept가 있으면 그 이름을 사용한다.
 5. raw 파일이 이미지를 참조하면 `![[filename.png]]` 형식으로 보존한다.
 6. **concept 즉시 생성**: 위에서 삽입한 `[[concept]]` 링크 중 아직 `wiki/concepts/`에 파일이 없는 것을 즉시 생성한다. `wiki/index.md`의 기존 concept aliases와 대조하여 중복을 방지한다. frontmatter에 `type: concept`, `topic`, `aliases`를 포함한다.
+7. **검증**: 방금 생성한 source와 concept 파일에 대해 검증 스크립트를 실행한다. FAIL이 출력되면 해당 파일을 수정한 뒤 다시 실행한다:
+   ```bash
+   .claude/skills/compile/scripts/validate.sh wiki/sources/<source>.md wiki/concepts/<concept>.md
+   ```
 
 ### 5. 교차 개념 보강 (선택적)
 
