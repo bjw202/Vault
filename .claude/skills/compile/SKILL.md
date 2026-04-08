@@ -64,9 +64,10 @@ source 하나를 처리할 때마다 아래 절차를 **모두 완료한 뒤** �
 1. `wiki/sources/`에 source 페이지를 생성하거나 갱신한다.
 2. frontmatter에 `type`, `topic`, `concepts`, `source_file`, `updated`, `checksum`을 포함한다.
 3. 본문은 원문을 그대로 옮기지 않는다. 핵심 주장, 데이터, 구조를 추출하여 불릿 중심의 밀도 높은 요약으로 작성한다.
-4. 개념 추출 및 링크 삽입: a. 본문 작성 완료 후, 이 source에서 등장하는 **핵심 개념/용어/패턴**을 5개 이상 나열한다. b. 각 개념에 대해 `wiki/index.md`의 Concepts 섹션을 확인한다:
+4. 개념 추출 및 링크 삽입: a. 본문 작성 완료 후, 이 source에서 등장하는 **핵심 개념/용어/패턴**을 5개 이상 나열한다. b. 각 개념의 **kebab-case 영어 파일명**을 먼저 결정한다 (예: 압력각 → `pressure-angle`, 인볼류트 곡선 → `involute-curve`). c. 각 개념에 대해 `wiki/index.md`의 Concepts 섹션을 확인한다:
    - 기존 concept가 있으면 → `[[기존-concept-이름]]`으로 링크
-   - 기존 concept가 없으면 → `[[새-concept-이름]]`으로 링크를 삽입한다. c. 관련 source 페이지도 `[[source-이름]]`으로 연결한다.
+   - 기존 concept가 없으면 → `[[kebab-case-영어-이름]]`으로 링크를 삽입한다. 한글로 표시하고 싶으면 `[[pressure-angle|압력각]]` 형식을 사용한다. d. 관련 source 페이지도 `[[source-이름]]`으로 연결한다.
+   - **주의**: `[[압력각]]`처럼 한글로 링크하면 concept 파일명(`pressure-angle.md`)과 불일치하여 링크가 깨진다. 반드시 `[[pressure-angle]]` 또는 `[[pressure-angle|압력각]]` 형식을 사용한다.
 5. raw 파일이 이미지를 참조하면 wiki 페이지에서도 `![[filename.png]]` 형식으로 보존한다.
 6. 원문이 필요하면 `raw/`에서 직접 읽는다 — wiki에 원문을 중복 보관하지 않는다.
 7. **concept 즉시 생성** — source 작성이 끝나면 바로 실행한다: a. 위 4단계에서 삽입한 `[[concept-이름]]` 링크 목록을 확인한다. b. 각 링크에 대해 `wiki/concepts/`에 해당 파일이 이미 있는지 확인한다. c. `wiki/index.md`의 Concepts 섹션과 기존 concept의 aliases도 확인하여, 이름만 다른 같은 개념이 있으면 source 페이지의 링크를 기존 concept로 수정한다. d. 기존 concept에 해당하지 않으면 `wiki/concepts/`에 즉시 새로 만든다. 파일명은 Step 4의 규칙과 동일하게 **kebab-case 영어**로 작성한다 (예: `압력각` → `pressure-angle.md`). 한글 표기는 frontmatter `aliases`에 보존한다. frontmatter에 `type: concept`, `topic`, `aliases`를 포함한다. e. 이미 존재하는 concept는 스킵한다.
