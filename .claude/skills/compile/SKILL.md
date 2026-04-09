@@ -78,8 +78,25 @@ raw 파일을 읽고, 본문에 등장할 핵심 개념을 kebab-case 영어로 
 
 #### 2-4. source 페이지 생성
 
-`wiki/sources/`에 source 페이지를 작성한다.
+**source 파일명 결정** (원본 파일명이 아니라 내용 기반):
 
+- **신규 파일 (new)**: 내용의 주제를 kebab-case 영어로 서술적 이름으로 짓는다. concept 이름과 구분되도록 한 단어 이상 덧붙인 서술형을 사용한다.
+  - 예: concept `involute-curve` ↔ source `involute-curve-fundamentals`
+  - 예: concept `profile-shift` ↔ source `profile-shift-verification`
+
+- **변경된 파일 (updated)**: 새로 이름을 짓지 말고 **기존 source 파일명을 재사용한다.** 이유: LLM이 재컴파일 때마다 다른 이름을 지으면 같은 raw 파일에 대해 중복 source가 생긴다. `_compile_log.md`에서 기존 매핑을 먼저 찾는다:
+
+  ```bash
+  grep "raw/<filename>" _compile_log.md | tail -1
+  ```
+
+  출력 예시: `## [2026-04-08] new | raw/01-인볼류트-곡선.md → involute-curve-fundamentals | sha256:...`
+
+  화살표 뒤의 `involute-curve-fundamentals`를 그대로 source 파일명으로 사용한다.
+
+**페이지 작성**:
+
+- `wiki/sources/<결정된-이름>.md`에 작성
 - frontmatter: `type`, `topic`, `concepts`, `source_file`, `updated`, `checksum`
 - 본문: 원문을 그대로 옮기지 않고 핵심 주장/데이터/구조를 불릿 중심으로 요약
 - 개념 위치에 `[[wiki links]]` 삽입 — 2-2에서 결정한 이름 그대로 사용
