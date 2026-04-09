@@ -26,9 +26,14 @@ Vault/
 │   ├── concepts/           # 재사용 가능한 개념
 │   └── syntheses/          # 통합 분석
 ├── .claude/skills/         # 실행 절차 (스킬)
-│   ├── compile/SKILL.md    # raw → wiki 컴파일
+│   ├── compile/
+│   │   ├── SKILL.md        # raw → wiki 컴파일 절차
+│   │   └── scripts/
+│   │       ├── detect-changes.sh  # sha256 기반 변경 감지
+│   │       └── validate.sh        # 언어 규칙 + frontmatter 검증
 │   ├── query/SKILL.md      # 지식 검색
-│   └── graph-lint/SKILL.md # 그래프 품질 점검
+│   ├── graph-lint/SKILL.md # 그래프 품질 점검
+│   └── push/SKILL.md       # GitHub 푸시
 ├── _compile_log.md         # 컴파일 이력 (append-only)
 └── CLAUDE.md               # 시스템 규칙 (얇은 schema)
 ```
@@ -138,6 +143,18 @@ wiki를 Obsidian으로 열면 그래프 뷰에서 지식 구조를 시각적으�
 ## 호환 환경
 
 이 시스템은 Claude Code뿐 아니라 CLAUDE.md와 스킬 파일을 읽을 수 있는 모든 LLM 코딩 에이전트에서 작동한다 (Cline, Cursor 등).
+
+### Cline에서 사용하기
+
+Cline은 `CLAUDE.md` 대신 `.clinerules/` 폴더를 프로젝트 규칙으로 인식한다.
+
+```bash
+# 프로젝트 루트에서
+mkdir -p .clinerules
+cp CLAUDE.md .clinerules/vault-schema.md
+```
+
+이후 Cline이 `.clinerules/vault-schema.md`를 자동으로 읽고 동일한 규칙을 따른다.
 
 ## License
 
