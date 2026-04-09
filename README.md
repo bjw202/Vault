@@ -75,18 +75,17 @@ claude  # Claude Code 실행
 
 `raw/`의 자료를 `wiki/`로 변환한다.
 
-- sha256 해시로 신규/변경 파일만 감지
-- source 페이지 생성 + concept 즉시 생성 (원자적 처리)
-- topic별 source 3개 이상이면 synthesis 자동 생성
-- `[[wiki links]]` 무결성 검증 (누락 0개 보장)
+- 신규/변경 파일만 감지하여 source 페이지 생성 + concept 즉시 생성
+- `[[wiki links]]` 무결성 검증
+- 상세는 `.claude/skills/compile/SKILL.md` 참조
 
 #### 2. 질문 (`/query`)
 
 wiki에서 관련 지식을 수집하여 질문에 답한다.
 
-- `wiki/index.md`에서 관련 페이지 식별
-- `[[wiki links]]`를 따라 깊이 2까지 재귀 탐색 (최대 15페이지)
+- `wiki/index.md`에서 관련 페이지 식별 → `[[wiki links]]` 재귀 탐색
 - 좋은 답변은 synthesis로 승격 가능
+- 상세는 `.claude/skills/query/SKILL.md` 참조
 
 #### 3. 린트 (`/graph-lint`)
 

@@ -14,11 +14,12 @@ for file in raw/*.md; do
 
   hash=$(shasum -a 256 "$file" | awk '{print $1}')
 
-  if grep -q "$hash" "$COMPILE_LOG" 2>/dev/null; then
-    continue  # 해시 동일 → 스킵
-  elif grep -q "$(basename "$file")" "$COMPILE_LOG" 2>/dev/null; then
-    echo "CHANGED $file $hash"
-  else
+  basename_file=$(basename "$file")
+  logged_hash=$(grep "$basename_file" "$COMPILE_LOG" 2>/dev/null | tail -1 | grep -o 'sha256:[a-f0-9]*' | sed 's/sha256://')
+  if [ -z "$logged_hash" ]; then
     echo "NEW $file $hash"
+  elif [ "$logged_hash" != "$hash" ]; then
+    echo "CHANGED $file $hash"
   fi
+  # else: 해시 동일 → 스킵 (아무것도 출력 안 함)
 done

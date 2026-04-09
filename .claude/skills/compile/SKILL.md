@@ -1,7 +1,6 @@
 ---
-name: compile
-description: "raw/ 자료를 wiki/로 컴파일하는 지식 그래프 빌드 파이프라인. 사용자가 컴파일, compile, 자료 정리해줘, 새 자료 반영해줘, raw 처리해줘 등을 말하거나, raw/에 새 파일을 넣었다고 언급할 때 이 스킬을 사용한다."
----
+
+## name: compile description: "raw/ 자료를 wiki/로 컴파일하는 지식 그래프 빌드 파이프라인. 사용자가 컴파일, compile, 자료 정리해줘, 새 자료 반영해줘, raw 처리해줘 등을 말하거나, raw/에 새 파일을 넣었다고 언급할 때 이 스킬을 사용한다."
 
 # Compile
 
@@ -66,10 +65,11 @@ source 하나를 처리할 때마다 아래 절차를 **모두 완료한 뒤** �
 1. `wiki/sources/`에 source 페이지를 생성하거나 갱신한다.
 2. frontmatter에 `type`, `topic`, `concepts`, `source_file`, `updated`, `checksum`을 포함한다.
 3. 본문은 원문을 그대로 옮기지 않는다. 핵심 주장, 데이터, 구조를 추출하여 불릿 중심의 밀도 높은 요약으로 작성한다.
-4. 개념 추출 및 링크 삽입: 본문에서 핵심 개념 5개 이상을 식별하고, `[[wiki links]]`로 연결한다. `wiki/index.md`에 기존 concept가 있으면 그 이름을 사용한다.
+4. 개념 추출 및 링크 삽입: 본문에서 핵심 개념을 식별하고, `[[wiki links]]`로 연결한다. `wiki/index.md`에 기존 concept가 있으면 그 이름을 사용한다.
 5. raw 파일이 이미지를 참조하면 `![[filename.png]]` 형식으로 보존한다.
 6. **concept 즉시 생성**: 위에서 삽입한 `[[concept]]` 링크 중 아직 `wiki/concepts/`에 파일이 없는 것을 즉시 생성한다. `wiki/index.md`의 기존 concept aliases와 대조하여 중복을 방지한다. frontmatter에 `type: concept`, `topic`, `aliases`를 포함한다.
 7. **검증**: 방금 생성한 source와 concept 파일에 대해 검증 스크립트를 실행한다. FAIL이 출력되면 해당 파일을 수정한 뒤 다시 실행한다:
+
    ```bash
    .claude/skills/compile/scripts/validate.sh wiki/sources/<source>.md wiki/concepts/<concept>.md
    ```
@@ -86,7 +86,7 @@ source 하나를 처리할 때마다 아래 절차를 **모두 완료한 뒤** �
 grep -r '^topic:' wiki/sources/ | sed 's/.*topic: //'
 ```
 
-1. topic별 source 3개 이상 → 해당 topic의 synthesis가 없으면 `wiki/syntheses/`에 새로 생성한다.
+1. topic별 source가 충분히 모였을 때(일반적으로 3개 이상) → 해당 topic의 synthesis가 없으면 `wiki/syntheses/`에 새로 생성한다.
 2. 기존 synthesis에 새 source가 추가된 경우 → 갱신한다.
 3. 생성/갱신 수가 0이어도 정상이다.
 

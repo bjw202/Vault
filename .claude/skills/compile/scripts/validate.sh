@@ -38,9 +38,22 @@ for file in "$@"; do
 
   # 4. frontmatter 필수 필드 확인
   frontmatter=$(sed -n '/^---$/,/^---$/p' "$file")
-  if ! echo "$frontmatter" | grep -q '^type:'; then
-    echo "FAIL: $file — frontmatter에 type 필드 없음"
-    FAIL=1
+  file_type=$(echo "$frontmatter" | grep '^type:' | sed 's/type: *//')
+
+  # 모든 타입: type, topic 필수
+  for field in type topic; do
+    if ! echo "$frontmatter" | grep -q "^${field}:"; then
+      echo "FAIL: $file — frontmatter에 ${field} 필드 없음"
+      FAIL=1
+    fi
+  done
+
+  # source, synthesis: concepts 필수 (concept 자신은 면제)
+  if [ "$file_type" != "concept" ]; then
+    if ! echo "$frontmatter" | grep -q "^concepts:"; then
+      echo "FAIL: $file — frontmatter에 concepts 필드 없음"
+      FAIL=1
+    fi
   fi
 
 done
