@@ -30,92 +30,97 @@ wiki/ 안에서 **기계가 매칭하는 값**은 전부 kebab-case 영어로 �
 
 - source/concept/synthesis에 박힌 **모든 `[[link]]`는 저장 시점에 타깃 파일이 이미 존재해야 한다.**
 - broken link가 하나라도 있으면 컴파일 완료로 판정하지 않는다.
-- 이 조건을 지키기 위해 **concept-first 순서**로 처리한다 (step 4 참고).
+- 이 조건을 지키기 위해 **concept-first 순서**로 처리한다 (step 2 참고).
 
 ## 실행 절차
 
-### 1. 상태 파악
+### 1. 상태 파악 및 변경 감지
 
-`_compile_log.md`를 읽어서 기존 컴파일 기록을 파악한다.
-
-### 2. 변경 감지
-
-`raw/` 디렉토리를 스캔하고, 각 파일의 sha256 해시를 계산한다. `raw/assets/`는 제외한다.
-
-```bash
-shasum -a 256 raw/<filename>
-```
-
-또는 변경 감지 스크립트를 사용한다:
+`_compile_log.md`를 읽어 기존 컴파일 기록을 파악한다. `raw/` 디렉토리를 스캔하고, 각 파일의 sha256 해시를 계산한다 (`raw/assets/` 제외).
 
 ```bash
 .claude/skills/compile/scripts/detect-changes.sh
 ```
 
-`_compile_log.md`에 기록된 해시와 비교:
+출력:
 
-- 해시가 없는 파일 → **신규**
-- 해시가 다른 파일 → **변경됨**
-- 해시가 같은 파일 → **스킵**
+- `NEW raw/<file> <hash>` — 로그에 없는 파일
+- `CHANGED raw/<file> <hash>` — 해시가 다른 파일
+- 해시가 같으면 스킵 (출력 없음)
 
-### 3. 처리 범위 결정
+### 2. 파일별 처리 루프 (per-file, concept-first)
 
-- **3개 이하** → 한 세션에서 모두 처리
-- **4개 이상** → 파일 하나씩 순차 처리 (파일마다 로그 기록)
+파일 개수와 무관하게 파일 하나를 완전히 끝낸 뒤 다음 파일로 넘어간다. 배치 처리하지 않는다.
 
-컨텍스트가 부족해지면 현재 파일까지 로그 기록 후 사용자에게 `/compile` 재실행을 안내한다.
+각 파일에 대해 2-1 ~ 2-7을 순서대로 실행한다.
 
-### 4. 소스 페이지 + 개념 생성/갱신 (concept-first)
+#### 2-1. 개념 목록 추출
 
-source 하나를 처리할 때마다 아래 단계를 **순서대로 모두 완료한 뒤** 다음 source로 넘어간다. **순서를 섞지 않는다** — 각 단계는 이전 단계가 끝나야만 안전하게 실행 가능하다.
-
-#### 4-1. 개념 목록 추출 (메모리)
-
-raw 파일을 읽고, 본문에 등장하는 핵심 개념을 kebab-case 영어로 나열한다. 아직 어떤 파일도 만들지 않는다. 이 단계의 출력은 메모리상의 리스트다.
+raw 파일을 읽고, 본문에 등장할 핵심 개념을 kebab-case 영어로 나열한다. 파일을 만들지 않고 리스트만 작성한다.
 
 예: `[pressure-angle, involute-curve, base-circle, pitch-circle]`
 
-#### 4-2. 인덱스 대조
+#### 2-2. 인덱스 대조
 
-`wiki/index.md`와 `wiki/concepts/`의 기존 concept 파일들(aliases 포함)을 읽는다. step 4-1의 각 개념에 대해:
+`wiki/index.md`와 `wiki/concepts/`의 기존 concept 파일들(aliases 포함)을 읽는다. 2-1의 각 개념에 대해:
 
-- **재사용**: 이미 존재하는 concept (aliases 매칭 포함) → 그 이름을 그대로 쓴다. 새로 만들지 않는다.
-- **신규 생성**: 존재하지 않는 concept → 신규 생성 대상으로 마킹한다.
+- **재사용**: 이미 존재하는 concept (aliases 매칭 포함) → 그 이름을 그대로 쓴다
+- **신규 생성**: 존재하지 않는 concept → 신규 생성 리스트에 추가
 
-이 단계의 출력: `재사용 리스트` + `신규 생성 리스트`.
+#### 2-3. 신규 concept 파일 먼저 생성
 
-#### 4-3. 신규 concept 파일 먼저 생성
-
-`신규 생성 리스트`의 각 항목에 대해 `wiki/concepts/<name>.md`를 **즉시 생성**한다. 내용은 최소한이어도 된다:
+신규 생성 리스트의 각 항목에 대해 `wiki/concepts/<name>.md`를 즉시 생성한다. 내용은 최소한이어도 된다:
 
 - frontmatter: `type: concept`, `topic` (해당 source의 topic 재사용), `aliases` (한글/영문)
-- 본문: 한 줄 정의라도. 상세화는 나중에 보강 가능.
+- 본문: 한 줄 정의라도
 
-이 단계가 끝나면 step 4-4에서 사용할 모든 concept 파일이 디스크에 존재한다.
+이 단계가 끝나면 2-4에서 사용할 모든 concept 파일이 디스크에 존재한다.
 
-#### 4-4. source 페이지 생성
+#### 2-4. source 페이지 생성
 
 `wiki/sources/`에 source 페이지를 작성한다.
 
-- frontmatter에 `type`, `topic`, `concepts`, `source_file`, `updated`, `checksum` 포함
-- 본문은 원문을 그대로 옮기지 않는다. 핵심 주장/데이터/구조를 불릿 중심의 밀도 높은 요약으로 작성
-- 개념 위치에 `[[wiki links]]` 삽입 — step 4-2에서 결정한 이름 그대로 사용
-- **이 시점에 모든 링크 타깃은 이미 파일로 존재한다** (step 4-3에서 생성)
-- raw 파일이 이미지를 참조하면 `![[filename.png]]` 형식으로 보존
+- frontmatter: `type`, `topic`, `concepts`, `source_file`, `updated`, `checksum`
+- 본문: 원문을 그대로 옮기지 않고 핵심 주장/데이터/구조를 불릿 중심으로 요약
+- 개념 위치에 `[[wiki links]]` 삽입 — 2-2에서 결정한 이름 그대로 사용
+- 이 시점에 모든 링크 타깃은 이미 파일로 존재한다 (2-3에서 생성)
+- raw가 이미지를 참조하면 `![[filename.png]]` 형식으로 보존
 
-#### 4-5. 검증
+#### 2-5. 검증
 
-방금 생성한 source와 concept 파일에 대해 검증 스크립트를 실행한다. FAIL이 출력되면 해당 파일을 수정한 뒤 다시 실행한다:
+방금 생성한 source와 concept 파일에 대해 검증 스크립트를 실행한다. FAIL이 출력되면 수정 후 재실행:
 
 ```bash
 .claude/skills/compile/scripts/validate.sh wiki/sources/<source>.md wiki/concepts/<concept1>.md wiki/concepts/<concept2>.md
 ```
 
-### 5. 교차 개념 보강 (선택적)
+#### 2-6. 로그 기록 (checkpoint)
+
+`_compile_log.md`에 한 줄 append한다:
+
+```
+## [2026-04-09] new | raw/filename.md → wiki-page-name | sha256:abc123...
+## [2026-04-09] updated | raw/other.md → other-page | sha256:def456...
+```
+
+- 신규 파일: `new`
+- 변경된 파일: `updated`
+
+이 append가 완료된 시점이 재시작 가능한 checkpoint다.
+
+#### 2-7. 진행 보고
+
+`[N/total] filename.md → wiki-page-name` 한 줄 출력 후 다음 파일로.
+
+**컨텍스트 부족 대비**: 컨텍스트가 부족해지면 현재까지 처리한 개수를 보고하고 세션을 종료한다. `/compile`을 다시 실행하면 `detect-changes.sh`가 처리된 파일을 자동 스킵하므로 남은 것만 이어서 처리된다.
+
+### 3. 후처리 (post-loop, 모든 파일 완료 후 1회)
+
+#### 3-1. 교차 개념 보강 (선택적)
 
 2개 이상의 source에서 반복 등장하지만 아직 concept가 없는 용어를 추가 식별한다. 있으면 concept를 만들고 source에 링크를 삽입한다. 없으면 스킵.
 
-### 6. Synthesis 생성/갱신
+#### 3-2. Synthesis 생성/갱신
 
 모든 source의 frontmatter `topic`을 수집하여 topic별 source 수를 센다:
 
@@ -123,11 +128,11 @@ raw 파일을 읽고, 본문에 등장하는 핵심 개념을 kebab-case 영어�
 grep -r '^topic:' wiki/sources/ | sed 's/.*topic: //'
 ```
 
-1. topic별 source가 충분히 모였을 때(일반적으로 3개 이상) → 해당 topic의 synthesis가 없으면 `wiki/syntheses/`에 새로 생성한다.
-2. 기존 synthesis에 새 source가 추가된 경우 → 갱신한다.
-3. 생성/갱신 수가 0이어도 정상이다.
+- topic별 source가 충분히 모였을 때(일반적으로 3개 이상) → 해당 topic의 synthesis가 없으면 `wiki/syntheses/`에 새로 생성
+- 기존 synthesis에 새 source가 추가된 경우 → 갱신
+- 생성/갱신 수가 0이어도 정상
 
-### 7. 인덱스 갱신
+#### 3-3. 인덱스 갱신
 
 `wiki/`의 실제 파일 목록을 수집하고 `wiki/index.md`와 대조하여 동기화한다:
 
@@ -135,15 +140,7 @@ grep -r '^topic:' wiki/sources/ | sed 's/.*topic: //'
 ls wiki/sources/ wiki/concepts/ wiki/syntheses/
 ```
 
-### 8. 로그 기록
-
-`_compile_log.md`에 한 줄씩 append한다:
-
-```
-## [2026-04-06] new | raw/filename.md → wiki-page-name | sha256:abc123...
-```
-
-### 9. 최종 검증
+#### 3-4. 최종 검증
 
 wiki/ 전체에서 `[[wiki links]]`를 추출하고, 타깃 파일 존재 여부를 확인한다:
 
@@ -151,9 +148,9 @@ wiki/ 전체에서 `[[wiki links]]`를 추출하고, 타깃 파일 존재 여부
 grep -roh '\[\[[^]]*\]\]' wiki/ | sort -u
 ```
 
-- 존재하지 않는 타깃 → concept를 생성하거나 링크를 제거한다.
-- **누락이 0개여야 컴파일 완료로 판정한다.**
+- 존재하지 않는 타깃 → concept를 생성하거나 링크를 제거한다
+- 누락이 0개여야 컴파일 완료로 판정한다
 
-### 10. 결과 보고
+#### 3-5. 결과 보고
 
 무엇을 새로 만들고, 갱신하고, 스킵했는지 요약한다.
