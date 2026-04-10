@@ -58,6 +58,9 @@ If `wiki/index.md` doesn't exist and `_compile_log.md` is empty, treat all raw/ 
 ## Principles
 
 - Include `type`, `topic`, `concepts` in frontmatter. Sources also get `source_file`, `checksum`, `updated`.
+- Keep machine-readable values in kebab-case English: filenames, `topic`, `concepts`, and `[[link]]` targets. Human-facing aliases and body text may use Korean.
+- Compile concept-first: create or reuse concept pages before writing source pages that link to them.
+- When a raw file changes, reuse its existing source page name from `_compile_log.md`; don't create a duplicate source under a new name.
 - Topics can overlap — use lists in frontmatter, link across topics, add shared concept pages.
 - Check existing concepts (including aliases) before creating new ones. Split broad ones, merge duplicates.
 - Record provenance: raw filename, original URL when available. Never fabricate.
